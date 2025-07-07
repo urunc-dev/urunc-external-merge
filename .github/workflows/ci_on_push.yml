@@ -1,9 +1,9 @@
 name: urunc CI
 
 on:
-  pull_request_target:
+  pull_request:
     branches: ["main"]
-    types: [synchronize, labeled, unlabeled]
+    types: [open,synchronize,reopened,labeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -12,6 +12,7 @@ concurrency:
 jobs:
   check-labels:
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.base.ref == 'main' }}
     outputs:
       skip_build: ${{ steps.set-vars.outputs.skip_build }}
       skip_lint:  ${{ steps.set-vars.outputs.skip_lint }}
@@ -62,7 +63,7 @@ jobs:
       id-token: write
       attestations: write
       pull-requests: read
-    if: ${{ needs.check-labels.outputs.ok_to_test == 'yes' }}
+    if: ${{ needs.check-labels.outputs.ok_to_test == 'yes' && github.event.pull_request.base.ref == 'main' }}
     uses: ./.github/workflows/ci.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
