@@ -53,16 +53,17 @@ jobs:
 #
 #
 
-      - name: Create a Pull Request from PR_BRANCH to main
+      - name: Create a Pull Request from PR_BRANCH to main and merge it
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           PR_BRANCH=${{ github.event.pull_request.base.ref }}
       
           # Create the pull request
-          gh pr create \
+          PR_URL=$(gh pr create \
             --head "$PR_BRANCH" \
             --base main \
             --title "Merge External PR: Merge $PR_BRANCH into main" \
-            --body "This PR was automatically created by GitHub Actions to merge changes from $PR_BRANCH into main."
+            --body "This PR was automatically created by GitHub Actions to merge changes from $PR_BRANCH into main.")
 
+          gh pr merge "$PR_URL" --rebase --admin
