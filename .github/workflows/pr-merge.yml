@@ -40,7 +40,8 @@ jobs:
 
       - name: Push commits with trailers to ${{ github.event.pull_request.base.ref }}
         env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          TOKEN: ${{ steps.generate-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           PR_BRANCH=${{ github.event.pull_request.base.ref }}
           git fetch origin $PR_BRANCH
