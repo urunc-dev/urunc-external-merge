@@ -1,0 +1,51 @@
+name: Final merge to main
+
+on:
+  pull_request_target:
+    types:
+      - closed
+
+jobs:
+  finalize:
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.base.ref, 'main-pr')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Generate urunc-bot token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.URUNC_BOT_APP_ID }}
+          private-key: ${{ secrets.URUNC_BOT_PRIVATE_KEY }}
+
+      - name: Append git trailers
+        uses: nubificus/git-trailers@feat_use_rebase
+        with:
+          user_info: .github/contributors.yaml
+
+      - name: Merge PR branch into main
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          PR_BRANCH=${{ github.event.pull_request.base.ref }}
+          git fetch origin $PR_BRANCH
+
+          git merge --ff-only origin/$PR_BRANCH
+          git push origin main
+          git push origin --delete $PR_BRANCH
+
