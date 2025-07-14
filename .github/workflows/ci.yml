@@ -54,13 +54,50 @@ jobs:
       ref: ${{ inputs.ref }}
     secrets: inherit
 
+  compute_versions:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.skip-build != 'yes' }}
+    outputs:
+      runc_version: ${{ steps.get_runc.outputs.version }}
+      containerd_version: ${{ steps.get_containerd.outputs.version }}
+      cni_version: ${{ steps.get_cni.outputs.version }}
+      nerdctl_version: ${{ steps.get_nerdctl.outputs.version }}
+    steps:
+      - name: Get runc version
+        id: get_runc
+        run: |
+          ver=$(curl -L -s -o /dev/null -w '%{url_effective}' "https://github.com/opencontainers/runc/releases/latest" | grep -oP "v\d+\.\d+\.\d+" | sed 's/v//')
+          echo "version=$ver" >> $GITHUB_OUTPUT
+      - name: Get containerd version
+        id: get_containerd
+        run: |
+          ver=$(curl -L -s -o /dev/null -w '%{url_effective}' "https://github.com/containerd/containerd/releases/latest" | grep -oP "v\d+\.\d+\.\d+" | sed 's/v//')
+          echo "version=$ver" >> $GITHUB_OUTPUT
+      - name: Get cni version
+        id: get_cni
+        run: |
+          ver=$(curl -L -s -o /dev/null -w '%{url_effective}' "https://github.com/containernetworking/plugins/releases/latest" | grep -oP "v\d+\.\d+\.\d+" | sed 's/v//')
+          echo "version=$ver" >> $GITHUB_OUTPUT
+      - name: Get nerdctl version
+        id: get_nerdctl
+        run: |
+          ver=$(curl -L -s -o /dev/null -w '%{url_effective}' "https://github.com/containerd/nerdctl/releases/latest" | grep -oP "v\d+\.\d+\.\d+" | sed 's/v//')
+          echo "version=$ver" >> $GITHUB_OUTPUT
+
   #FIXME: run for arm64
   vm_test:
     if: ${{ inputs.skip-build != 'yes' }}
-    needs: [build,unit_test]
+    needs: [build,unit_test,compute_versions]
     name: E2E test
     uses: ./.github/workflows/vm_test.yml
     with:
       ref: ${{ inputs.ref }}
+      runc_version: ${{ needs.compute_versions.outputs.runc_version }}
+      containerd_version: ${{ needs.compute_versions.outputs.containerd_version }}
+      cni_version: ${{ needs.compute_versions.outputs.cni_version }}
+      nerdctl_version: ${{ needs.compute_versions.outputs.nerdctl_version }}
+      crictl_version: 'v1.30.0' # check latest version in /releases page
+      firecracker_version: 'v1.7.0'
+      solo5_version: 'v0.9.0'
     secrets: inherit
 
